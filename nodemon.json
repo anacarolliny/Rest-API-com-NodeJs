@@ -1,0 +1,12 @@
+
+
+{
+    "env" :{
+      "MYSQL_USER" : "root2",
+    "MYSQL_PASSWORD" : "123456",
+    "MYSQL_DATABASE" : "ecommerce",
+   "MYSQL_HOST" : "localhost",
+    "MYSQL_PORT" : 3306
+
+    }
+}

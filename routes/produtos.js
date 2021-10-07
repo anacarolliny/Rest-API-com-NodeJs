@@ -1,6 +1,36 @@
 const express = require("express")
 const router = express.Router()//aqui declarando que é uma rota do express
 const mysql = require("../mysql").pool // o .pool é para exportar o arquivo inteiro
+const multer = require("multer") // para tratar os  forms data, entra como binário, mas ele traduz
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "./uploads/")
+    },
+    filename: function(req, file, cb){
+        
+        //let data = new Date().toISOString().replace(/:/g, ) ;
+
+        cb(null, file.originalname)
+    }
+})
+
+const fileFilter = (req, file, cb) => { // um filtro mais especifico pra imagens jpeg e png
+    if (file.mimetype === "image/jpeg" || file.mimetype === "image/png"){
+        cb(null, true)
+    }else{
+        cb(null, false)
+        
+    }
+    
+    }
+
+const upload = multer({//para armazenar todos os meus uploads nessa pasta
+    storage: storage,
+    limits: { // filtar o tamanho das imagens
+        fileSize: 1024 * 1024 * 5
+    },
+    fileFilter : fileFilter // nesse caso ele não salva o arquivo e tras undefined no console e não salva a imagem porque não estamos tratamento o erro
+}) 
 
 // RETORNA TODOS OS PRODUTOS
 router.get("/", (req, res, next) => { //retorna todos os produtos
@@ -17,10 +47,12 @@ router.get("/", (req, res, next) => { //retorna todos os produtos
                             id_produto: prod.id_produto,
                             nome: prod.nome,
                             preco: prod.preco,
+                            imagem_produto : prod.imagem_produto,
                             request: { //
                                 tipo: "GET",
                                 descricao: "Retorna o detalhe de um ID específico",//documentação dos meus métodos
-                                url: "http://localhost:3000/produtos/" + prod.id_produto // link para se clicar na API vai redirecionar para o GET individual do produto
+                                url: "http://localhost:3000/produtos/" + prod.id_produto,
+                                url_da_imagem: "http://localhost:3000/" + prod.imagem_produto  // link para se clicar na API vai redirecionar para o GET individual do produto
                             }
                         }
                     })
@@ -34,13 +66,13 @@ router.get("/", (req, res, next) => { //retorna todos os produtos
 
 
 // INSERE UM PRODUTO
-router.post("/", (req, res, next) => {
-
+router.post("/", upload.single("produto_imagem"),(req, res, next) => {
+console.log(req.file)
     mysql.getConnection((error, conn) => { // conexão com o banco
         if (error) { return res.status(500).send({ error: error }) } // retorna um erro se nao conseguir acessar a conexão
         conn.query(
-            "INSERT INTO produtos (nome, preco) VALUES (?,?)",
-            [req.body.nome, req.body.preco],
+            "INSERT INTO produtos (nome, preco, imagem_produto) VALUES (?,?,?)",
+            [req.body.nome, req.body.preco, req.file.path],
             (error, result, field) => {
                 conn.release()//muito importante porque quando ele entrar na callback tem que liberar a query
                 if (error) { return res.status(500).send({ error: error }) } // retorna um erro se nao conseguir executar a query
@@ -51,10 +83,12 @@ router.post("/", (req, res, next) => {
                         id_produto: result.id_produto,
                         nome: req.body.nome,
                         preco: req.body.preco,
+                        imagem_produto : req.file.path,
                         request: {
                             tipo: "POST",
                             descricao: "Insere um produto",
                             url: "http:localhost:3000/produtos"
+                            
                         }
                     }
                 }
@@ -88,10 +122,12 @@ router.get("/:id_produto", (req, res, next) => { // entra em detalhes de um unic
                         id_produto: result[0].id_produto,
                         nome: result[0].nome,
                         preco: result[0].preco,
+                        imagem_produto: result[0].imagem_produto,
                         request: { //
                             tipo: "GET",
                             descricao: "Retorna o produto selecionado",//documentação dos meus métodos
-                            url: "http://localhost:3000/produtos/"  // link para se clicar na API vai redirecionar para o GET individual do produto
+                            url: "http://localhost:3000/produtos/",  // link para se clicar na API vai redirecionar para o GET individual do produto
+                            url_da_imagem: "http://localhost:3000/" + result[0].imagem_produto
                         }
                     }
 

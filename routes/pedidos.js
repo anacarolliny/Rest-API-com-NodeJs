@@ -6,17 +6,28 @@ const mysql = require("../mysql").pool
 router.get("/", (req, res, next) => { //retorna todos os pedidos
     mysql.getConnection((error, conn) => {
         if (error) { return res.status(500).send({ error: error }) } // retorna um erro se nao conseguir acessar a conexão
-        conn.query(
-            "SELECT * FROM pedidos",
+        conn.query( // "SELECT * FROM pedidos", essa query só retorna parametros não muito interessantes, vou mudar para uma consulta entre tabelas
+            `SELECT pedidos.id_pedido,
+                pedidos.quantidade,
+                produtos.id_produto,
+                produtos.nome,
+                produtos.preco
+                FROM pedidos
+                INNER JOIN produtos
+                ON produtos.id_produto = pedidos.id_produto;`,
             (error, result, fields) => {
                 if (error) { return res.status(500).send({ error: error }) }
                 const response = { // Aqui posso documentar meu método Get melhor, boas praticas
-                    quantidade: result.length,
                     pedidos: result.map(pedido => { // no array e produtos, cada item dele vou modificar o valor, vai ter esse padrão
                         return {
                             id_pedido: pedido.id_pedido,
-                            id_produto: pedido.id_produto,
                             quantidade: pedido.quantidade,
+                            produto: {
+                                id_produto: pedido.id_produto,
+                                nome: pedido.nome,
+                                preco: pedido.preco
+                            },
+
 
                             request: { //
                                 tipo: "GET",
@@ -38,12 +49,12 @@ router.get("/", (req, res, next) => { //retorna todos os pedidos
 router.post("/", (req, res, next) => {
     mysql.getConnection((error, conn) => { // conexão com o banco
 
-    if (error) { return res.status(500).send({ error: error }) }// executando duas queries no mesmo metodo
+        if (error) { return res.status(500).send({ error: error }) }// executando duas queries no mesmo metodo
 
-        conn.query( "SELECT * FROM  produtos WHERE id_produto = ?; ", // primeiro verifico se tem o produto
+        conn.query("SELECT * FROM  produtos WHERE id_produto = ?; ", // primeiro verifico se tem o produto
             [req.body.id_produto],
-            (error, result, field) => { 
-                
+            (error, result, field) => {
+
                 if (error) { return res.status(500).send({ error: error }) }
                 if (result.length == 0) { // tratamento de erro de nao encontrar um produto que eu quero inserir
                     return res.status(404).send({

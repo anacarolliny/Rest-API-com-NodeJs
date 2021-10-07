@@ -8,6 +8,7 @@ const bodyParser = require("body-parser") // pegar o bodyparser das dependencias
 
 
 app.use(morgan("dev")) // util no terminal, ele retorna o codigo de erro e a rota executada
+app.use("/uploads", express.static("uploads")) // estou dizendo que minha rota uploads é publica
 app.use(bodyParser.urlencoded({ extended: false })) // apenas dados simples vamos aceitar
 
 app.use(bodyParser.json()) // recebe somente formato json
